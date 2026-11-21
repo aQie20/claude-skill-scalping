@@ -34,6 +34,20 @@ Executing trades is only acceptable because the account holds no real money. So:
 
 Use the `smc` skill (H4→H1→M30→M15 structure, S/R, OB, FVG, sweeps, PROMP2U L01–L07) to build a zone map: supply/resistance zones, demand/support zones, flipped levels, and the H1/H4 invalidation levels. Note the previous day's high/low/range. Refresh the map when price leaves it or structure changes.
 
+## 2b. PRE-ENTRY CHECKLIST (user, 21 Nov 2026 — read before EVERY order or pending order)
+
+Answer all six in the report. Any "no" → **no trade**, say which one failed.
+
+1. **Break confirmed?** M15 (or M5) CLOSED clearly beyond the zone (≥ $0.5), not a wick, not an M1-only close. *(#1, #5)*
+2. **Retest + structure?** Price came back to the broken level and printed an M1 LH (SELL) / HL (BUY) there. No chasing the breakout candle. *(#4b)*
+3. **Signal still valid?** Closed-M1 trigger, and live price has NOT moved back past the trigger level nor run > $0.5 toward TP. *(#7, #11, #13)*
+4. **SL right?** Beyond the real retest high/low + 0.5; distance ≤ $5 (2 layers); larger than the current M5 candle range; ≥ $2 from live price. *(#5, #12, #15)*
+5. **Room & location?** At the EDGE of a zone, not mid-range; TP before the next obstacle; room to TP ≥ SL distance (R:R ≥ 1 from the likely fill). *(#12, #13)*
+6. **Market calm?** Last 10–15 min M1/M5 swings smaller than the SL; not the chaotic NY open / broker daily close; no opposite open position. If I called it choppy, it IS choppy. *(#9, #12)*
+
+After entry: when the written early-exit rule fires, exit — no reinterpretation. *(#6)*
+Track record behind this list (18–20 Nov): all 5 wins followed it (model 4e); all 6 losses broke at least one item.
+
 ## 3. Entry discipline (hard-won — read every time)
 
 1. **Zone ≠ signal.** Being in a zone is not a reason to enter.
@@ -56,6 +70,17 @@ Use the `smc` skill (H4→H1→M30→M15 structure, S/R, OB, FVG, sweeps, PROMP2
 - When a PO fills, watch M1/M5: if structure supports the trade (SELL: M1 LH/LL continue, M5 closes red), hold to TP. If structure clearly turns against it (SELL: M1 closes above its last lower high AND M5 closes green above the prior M5 high), exit early at the smallest loss possible — on a small M1 pullback or immediately if price nears SL. One noisy candle is not a reason to exit.
 - **When the written early-exit condition fires, exit.** Don't reinterpret a closed candle as "just a wick" to justify holding (19 Nov 01:20: held at −$179, then full SL −$453).
 - Count PO + open layers together for the max-10 and ≤30% risk limits.
+
+### 3c. STOP orders at the trigger level (user-approved 20 Nov 16:34 MYT — keep the 3-min cron, no 1-min polling)
+
+3-minute polling kept missing valid signals in fast markets (20 Nov: three valid triggers fired and ran between checks). Fix: once the setup is armed, let the broker execute the trigger.
+- **Arm only after the 4e conditions are in place:** clear M5/M15 close beyond the zone → retest → BUY: a M1 higher low has formed at the retest (SELL: a M1 lower high).
+- **Place** BUY STOP at the previous M1 high + ~0.3 (SELL STOP at the previous M1 low − ~0.3), 2 layers × 0.50 (two pending orders), with SL = beyond the HL/LH (retest low/high) ∓ 0.5 and TP before the next obstacle **attached in the same call**. Check before placing: SL distance from the stop price ≤ $5, R:R ≥ 1 from the stop price, stop price ≥ ~$0.5 from the live price.
+- `place_pending_order` takes only 'BUY'/'SELL'; the MCP picks stop vs limit from price vs market (BUY above ask = buy stop). After placing, read `get_pending_orders_by_symbol` and confirm the type is a STOP and SL/TP are set; if not, cancel at once.
+- **Cancel** the pending order when: price breaks the HL/LH (signal void), the structure changes so R:R < 1, the opposite setup appears, or it is unfilled after ~15 min (5 ticks).
+- **Location + noise (20 Nov −$489):** arm only at the edge of a zone where the room to the next obstacle ≥ the SL distance — never mid-range under resistance; the SL must also exceed the current M5 candle range, not just M1 wicks.
+- **MCP data can be stale:** if a candle high/low crossed the stop price but the order still shows "PLACED", or a cancel returns 10013 "Invalid request", call `get_deals` with `from_date` = today before reporting anything.
+- When it fills, manage as a normal trade (no SL moves while trailing is on hold; early exit per 3b). Never have BUY and SELL pending/open at the same time.
 
 ## 4. Managing open trades (SL lessons)
 
